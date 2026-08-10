@@ -1,69 +1,203 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import BackgroundLayer from "@/components/BackgroundLayer";
+import Tree from "@/components/Tree";
+import DailyCardList from "@/components/DailyCardList";
+import TestimonyModal from "@/components/TestimonyModal";
+import { SCHEDULE, TOTAL_DAYS, getCurrentJourneyDay, JOURNEY_START_DATE, formatDayDate } from "@/lib/schedule";
+import { useDayStats, TOTAL_MEMBERS } from "@/lib/dataService";
+import { useSession } from "@/lib/useSession";
+import { setDisplayName, setDemoRole } from "@/lib/session";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { useSupabaseUser } from "@/lib/useSupabaseUser";
+import { useProfile } from "@/lib/useProfile";
+import { signOut } from "@/lib/supabase/auth";
+
+function JourneyBadge({ currentJourneyDay }: { currentJourneyDay: number | null }) {
+  if (currentJourneyDay === null) {
+    return (
+      <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-stone-600 shadow-sm">
+        Journey begins {formatDayDate(JOURNEY_START_DATE)}
+      </span>
+    );
+  }
+  if (currentJourneyDay === TOTAL_DAYS) {
+    return (
+      <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+        Stake Conference is today!
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
+      Day {currentJourneyDay} of {TOTAL_DAYS}
+    </span>
+  );
+}
+
+function NameBadge() {
+  const session = useSession();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(session.displayName);
+
+  if (editing) {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (draft.trim()) setDisplayName(draft.trim());
+          setEditing(false);
+        }}
+        className="flex items-center gap-1"
+      >
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => setEditing(false)}
+          placeholder="Your name"
+          maxLength={60}
+          className="w-32 rounded-full border border-amber-200 bg-white/90 px-3 py-1 text-xs outline-none focus:border-amber-400"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(session.displayName);
+        setEditing(true);
+      }}
+      className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-stone-600 shadow-sm transition hover:bg-white"
+    >
+      {session.displayName ? session.displayName : "Set your name"}
+    </button>
+  );
+}
+
+function AuthControls() {
+  const { user, loading } = useSupabaseUser();
+
+  if (!isSupabaseConfigured || loading) return null;
+
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-stone-600 shadow-sm">
+      <span>{user.email}</span>
+      <button type="button" onClick={() => signOut()} className="text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline">
+        Sign out
+      </button>
+    </div>
+  );
+}
 
 export default function Home() {
+  const dayStats = useDayStats();
+  const session = useSession();
+  const { user: supaUser } = useSupabaseUser();
+  const profile = useProfile(supaUser?.id);
+  const isAdmin = isSupabaseConfigured ? profile?.role === "admin" : session.role === "admin";
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [focusedDay, setFocusedDay] = useState<number | null>(null);
+  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentJourneyDay = getCurrentJourneyDay();
+  const backgroundDay = focusedDay ?? currentJourneyDay ?? 1;
+
+  const totalShared = dayStats.reduce((sum, s) => sum + s.participantCount, 0);
+  const overallPct = Math.round((totalShared / (TOTAL_MEMBERS * TOTAL_DAYS)) * 100);
+
+  function handleFocusDay(day: number) {
+    setFocusedDay(day);
+    const el = document.querySelector<HTMLElement>(`[data-day="${day}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    if (clearTimer.current) clearTimeout(clearTimer.current);
+    clearTimer.current = setTimeout(() => setFocusedDay(null), 1800);
+  }
+
+  useEffect(() => () => {
+    if (clearTimer.current) clearTimeout(clearTimer.current);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <BackgroundLayer day={backgroundDay}>
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-16 pt-6 sm:px-6">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-extrabold text-stone-800 sm:text-3xl">Tree of Light</h1>
+            <p className="text-sm text-stone-600">
+              A 33-day journey to Stake Conference · Aug 18 – Sep 19, 2026
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <JourneyBadge currentJourneyDay={currentJourneyDay} />
+            <NameBadge />
+            <AuthControls />
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="rounded-full bg-stone-800 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-stone-700"
+              >
+                Admin Panel
+              </Link>
+            )}
+            {!isAdmin && !isSupabaseConfigured && (
+              <button
+                type="button"
+                onClick={() => setDemoRole("admin")}
+                title="Demo only — production gates this via Supabase profiles.role, not a client toggle"
+                className="rounded-full border border-dashed border-stone-400 px-3 py-1 text-xs font-medium text-stone-500 shadow-sm transition hover:bg-white/60"
+              >
+                Preview Admin (demo)
+              </button>
+            )}
+          </div>
+        </header>
+
+        <section className="mt-6 rounded-3xl bg-white/40 p-4 shadow-sm backdrop-blur-sm sm:p-6">
+          <Tree dayStats={dayStats} focusedDay={focusedDay} onOpenDay={setSelectedDay} />
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-center text-xs text-stone-600 sm:text-sm">
+            <span>
+              <strong className="text-stone-800">{totalShared}</strong> testimonies shared across the tree
+            </span>
+            <span className="hidden h-4 w-px bg-stone-300 sm:inline-block" />
+            <span>
+              <strong className="text-stone-800">{overallPct}%</strong> overall participation
+            </span>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <DailyCardList
+            schedule={SCHEDULE}
+            dayStats={dayStats}
+            focusedDay={focusedDay}
+            currentJourneyDay={currentJourneyDay}
+            onFocusDay={handleFocusDay}
+            onOpenDay={setSelectedDay}
+          />
+        </section>
+
+        <footer className="mt-12 text-center text-xs text-stone-500">
+          Built for your Stake Conference journey · Aug 18 – Sep 19, 2026
+        </footer>
+      </div>
+
+      <TestimonyModal day={selectedDay} onClose={() => setSelectedDay(null)} />
+    </BackgroundLayer>
   );
 }

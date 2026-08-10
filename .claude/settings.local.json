@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(npm -v)",
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)"
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/)",
+      "Skill(claude-in-chrome)",
+      "Bash(curl -s http://localhost:3000/ -o /tmp/tol-page.html)",
+      "Read(//tmp/**)",
+      "Bash(grep -o '.\\\\{0,30\\\\}Journey begins.\\\\{0,60\\\\}' /tmp/tol-page.html)",
+      "Bash(grep -o '.\\\\{0,20\\\\}Read.\\\\{0,20\\\\}' /tmp/tol-page.html)",
+      "Bash(curl -s http://localhost:3000/ -o /tmp/tol-page3.html)",
+      "Bash(curl -s http://localhost:3000/ -o /tmp/tol-page4.html)",
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(grep -o '.\\\\{0,15\\\\}Read.\\\\{0,20\\\\}' /tmp/tol-page4.html)",
+      "Bash(curl -s -o /dev/null -w \"admin status: %{http_code}\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s -o /dev/null -w \"admin: %{http_code}\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s http://localhost:3000/admin -o /tmp/tol-admin.html)",
+      "Bash(python3 *)",
+      "Bash(curl *)",
+      "Bash(git add *)"
     ]
   }
 }
