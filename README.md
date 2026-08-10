@@ -1,5 +1,7 @@
 # Tree of Light 🌳
 
+Live: [everfruits.vercel.app](https://everfruits.vercel.app)
+
 A 33-day gospel-mission journey for LDS Stake members preparing for Stake
 Conference (Aug 18 – Sep 19, 2026). Each day unlocks a conference-talk
 mission; testimonies members share light up an apple-shaped fruit on a single
