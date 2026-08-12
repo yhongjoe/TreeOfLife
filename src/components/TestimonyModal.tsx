@@ -5,6 +5,7 @@ import { formatDayDateLong, generateMissionPrompt, getMission, getMissionTitle, 
 import { submitTestimony, useTestimonies } from "@/lib/dataService";
 import { useSession } from "@/lib/useSession";
 import { setDisplayName } from "@/lib/session";
+import { useCurrentUserId } from "@/lib/useCurrentUserId";
 import { useTranslation, translate } from "@/lib/i18n/translations";
 import type { Language } from "@/lib/language";
 
@@ -46,6 +47,7 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
   const mission = day ? getMission(day) : undefined;
   const { testimonies, loading } = useTestimonies(day);
   const session = useSession();
+  const currentUserId = useCurrentUserId();
   const { t, lang } = useTranslation();
 
   const [name, setName] = useState(session.displayName);
@@ -70,7 +72,7 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
 
   if (!day || !mission) return null;
 
-  const myTestimony = testimonies.find((t) => t.authorId === session.id);
+  const myTestimony = testimonies.find((t) => t.authorId === currentUserId);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

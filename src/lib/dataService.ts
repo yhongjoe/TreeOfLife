@@ -84,6 +84,13 @@ async function liveGetTestimoniesPreview(day: number, limit: number): Promise<Te
   }));
 }
 
+async function liveGetMyDays(userId: string): Promise<number[]> {
+  const supabase = getSupabaseClient()!;
+  const { data, error } = await supabase.from("testimonies").select("day").eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.day);
+}
+
 async function liveGetAllTestimonies(): Promise<Testimony[]> {
   const supabase = getSupabaseClient()!;
   const { data, error } = await supabase
@@ -254,6 +261,49 @@ export function useTestimonyPreview(day: number | null, limit = 2): Testimony[] 
 
   if (!isSupabaseConfigured) return mockPreview;
   return day === null ? EMPTY_TESTIMONIES : livePreview;
+}
+
+const EMPTY_DAY_SET: Set<number> = new Set();
+
+/**
+ * The set of days the given user has personally submitted a testimony for.
+ * Drives the "my completion" tree view (spec: signed-in non-admin members
+ * see their own completed days lit up white, independent of how many other
+ * members participated) — see useCurrentUserId for why `userId` must come
+ * from there rather than session.id directly once Supabase is configured.
+ */
+export function useMyCompletedDays(userId: string | null): Set<number> {
+  const mockAll = useSyncExternalStore(mock.subscribe, mock.getAllTestimonies, mock.getAllTestimonies);
+  const mockMyDays = useMemo(
+    () => (userId ? new Set(mockAll.filter((t) => t.authorId === userId).map((t) => t.day)) : EMPTY_DAY_SET),
+    [mockAll, userId],
+  );
+  const [liveMyDays, setLiveMyDays] = useState<Set<number>>(EMPTY_DAY_SET);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId) return;
+    let cancelled = false;
+    const supabase = getSupabaseClient()!;
+    const load = () => {
+      liveGetMyDays(userId)
+        .then((days) => !cancelled && setLiveMyDays(new Set(days)))
+        .catch(console.error);
+    };
+    load();
+    const channel = supabase
+      .channel(`public:testimonies:mine:${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "testimonies", filter: `user_id=eq.${userId}` }, load)
+      .subscribe();
+    const unsubscribeLocal = subscribeLiveChange(load);
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+      unsubscribeLocal();
+    };
+  }, [userId]);
+
+  if (!isSupabaseConfigured) return mockMyDays;
+  return userId ? liveMyDays : EMPTY_DAY_SET;
 }
 
 export async function submitTestimony(day: number, authorId: string, authorName: string, message: string): Promise<void> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BackgroundLayer from "@/components/BackgroundLayer";
 import Tree from "@/components/Tree";
@@ -8,12 +8,13 @@ import DailyCardList from "@/components/DailyCardList";
 import TestimonyModal from "@/components/TestimonyModal";
 import LanguageToggle from "@/components/LanguageToggle";
 import { SCHEDULE, TOTAL_DAYS, getCurrentJourneyDay, JOURNEY_START_DATE, formatDayDate } from "@/lib/schedule";
-import { useDayStats, TOTAL_MEMBERS } from "@/lib/dataService";
+import { useDayStats, useMyCompletedDays, TOTAL_MEMBERS } from "@/lib/dataService";
 import { useSession } from "@/lib/useSession";
 import { setDisplayName, setDemoRole } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { useProfile } from "@/lib/useProfile";
+import { useCurrentUserId } from "@/lib/useCurrentUserId";
 import { signOut } from "@/lib/supabase/auth";
 import { useTranslation } from "@/lib/i18n/translations";
 
@@ -117,6 +118,8 @@ export default function Home() {
   const { user: supaUser } = useSupabaseUser();
   const profile = useProfile(supaUser?.id);
   const isAdmin = isSupabaseConfigured ? profile?.role === "admin" : session.role === "admin";
+  const currentUserId = useCurrentUserId();
+  const myCompletedDays = useMyCompletedDays(currentUserId);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [focusedDay, setFocusedDay] = useState<number | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +130,18 @@ export default function Home() {
 
   const totalShared = dayStats.reduce((sum, s) => sum + s.participantCount, 0);
   const overallPct = Math.round((totalShared / (TOTAL_MEMBERS * TOTAL_DAYS)) * 100);
+
+  // Signed-in non-admin members see their own completed days lit up white,
+  // independent of overall participation — so they can tell at a glance
+  // what they've done vs. not, per the spec. Admins (and anyone not signed
+  // in) keep the original aggregate-participation brightness. Only
+  // brightness is swapped here — participantCount (the badge) always shows
+  // the real aggregate count for everyone.
+  const showPersonalView = !isAdmin && currentUserId !== null;
+  const treeDayStats = useMemo(() => {
+    if (!showPersonalView) return dayStats;
+    return dayStats.map((s) => ({ ...s, brightness: myCompletedDays.has(s.day) ? 50 : 0 }));
+  }, [dayStats, showPersonalView, myCompletedDays]);
 
   function handleFocusDay(day: number) {
     setFocusedDay(day);
@@ -175,7 +190,7 @@ export default function Home() {
         </header>
 
         <section className="mt-6 rounded-3xl bg-white/40 p-4 shadow-sm backdrop-blur-sm sm:p-6">
-          <Tree dayStats={dayStats} focusedDay={focusedDay} onOpenDay={setSelectedDay} />
+          <Tree dayStats={treeDayStats} focusedDay={focusedDay} onOpenDay={setSelectedDay} />
           <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-center text-xs text-stone-600 sm:text-sm">
             <span>{t("testimoniesSharedAcrossTree", { count: totalShared })}</span>
             <span className="hidden h-4 w-px bg-stone-300 sm:inline-block" />
