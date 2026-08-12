@@ -31,9 +31,15 @@ function timeAgo(iso: string, lang: Language): string {
  * the confirmed real session index page, not a per-talk deep link — see the
  * comment on CONFERENCE_LINKS in schedule.ts for why individual talk URLs
  * aren't generated.
+ *
+ * Uses "_blank" rather than a fixed reused window name — a fixed name
+ * (e.g. "conference-talk") makes the browser try to reuse/refocus the same
+ * window on every click, which silently does nothing once that window has
+ * been closed (confirmed: worked once, then never again on repeat clicks).
+ * "_blank" always opens a fresh window/tab.
  */
 function openConferenceLink(lang: Language) {
-  window.open(CONFERENCE_LINKS[lang], "conference-talk", "width=480,height=800,noopener,noreferrer");
+  window.open(CONFERENCE_LINKS[lang], "_blank", "width=480,height=800,noopener,noreferrer");
 }
 
 export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
