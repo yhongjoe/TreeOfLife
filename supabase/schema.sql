@@ -43,13 +43,18 @@ create trigger on_auth_user_created
 
 -- Prevent members from granting themselves admin via a crafted UPDATE — only
 -- an existing admin's request is allowed to actually change the role column.
+-- auth.uid() is NULL for direct DB connections (SQL Editor, `supabase db
+-- query`, migrations) since there's no JWT/PostgREST context — those are
+-- intentionally left unrestricted, since anyone with raw DB credentials
+-- already has full control regardless. This only guards requests that come
+-- through as an authenticated-but-non-admin app user.
 create or replace function public.prevent_role_escalation()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 begin
-  if new.role is distinct from old.role and not public.is_admin() then
+  if new.role is distinct from old.role and auth.uid() is not null and not public.is_admin() then
     new.role := old.role;
   end if;
   return new;
