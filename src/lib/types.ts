@@ -6,6 +6,13 @@ export interface MissionDay {
   date: string;
   speaker: string;
   title: string;
+  /**
+   * Korean transliteration/translation of speaker and title, for the
+   * bilingual UI. Best-effort — not verified against the Church's official
+   * Korean-language conference materials, so treat as approximate.
+   */
+  speakerKo: string;
+  titleKo: string;
 }
 
 export interface Testimony {

@@ -1,7 +1,8 @@
 "use client";
 
-import { formatDayDate } from "@/lib/schedule";
+import { formatDayDate, getMissionTitle, getMissionSpeaker } from "@/lib/schedule";
 import type { MissionDay, Testimony } from "@/lib/types";
+import { useTranslation } from "@/lib/i18n/translations";
 
 interface FruitTooltipProps {
   mission: MissionDay;
@@ -12,6 +13,8 @@ interface FruitTooltipProps {
 }
 
 export default function FruitTooltip({ mission, xPct, yPct, participantCount, previewTestimonies }: FruitTooltipProps) {
+  const { t, lang } = useTranslation();
+
   return (
     <div
       role="tooltip"
@@ -19,20 +22,20 @@ export default function FruitTooltip({ mission, xPct, yPct, participantCount, pr
       style={{ left: `${xPct}%`, top: `${yPct}%` }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-amber-700">Day {mission.day} · {formatDayDate(mission.date)}</span>
+        <span className="text-xs font-bold text-amber-700">
+          {t("dayLabel", { day: mission.day })} · {formatDayDate(mission.date, lang)}
+        </span>
         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.65rem] font-semibold text-amber-800">
-          {participantCount} shared
+          {t("sharedCount", { count: participantCount })}
         </span>
       </div>
-      <p className="mt-1 text-sm font-semibold text-stone-800 leading-snug">{mission.title}</p>
-      <p className="text-xs text-stone-500">{mission.speaker}</p>
+      <p className="mt-1 text-sm font-semibold text-stone-800 leading-snug">{getMissionTitle(mission, lang)}</p>
+      <p className="text-xs text-stone-500">{getMissionSpeaker(mission, lang)}</p>
       <div className="mt-2 space-y-1.5 border-t border-amber-100 pt-2">
-        {previewTestimonies.length === 0 && (
-          <p className="text-xs italic text-stone-400">Be the first to share a testimony today.</p>
-        )}
-        {previewTestimonies.slice(0, 2).map((t) => (
-          <p key={t.id} className="line-clamp-2 text-xs text-stone-600">
-            <span className="font-semibold text-stone-700">{t.authorName}:</span> {t.message}
+        {previewTestimonies.length === 0 && <p className="text-xs italic text-stone-400">{t("beFirstToShare")}</p>}
+        {previewTestimonies.slice(0, 2).map((testimony) => (
+          <p key={testimony.id} className="line-clamp-2 text-xs text-stone-600">
+            <span className="font-semibold text-stone-700">{testimony.authorName}:</span> {testimony.message}
           </p>
         ))}
       </div>

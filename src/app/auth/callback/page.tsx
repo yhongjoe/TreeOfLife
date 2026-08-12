@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
+import { useTranslation } from "@/lib/i18n/translations";
 
 /**
  * Where Supabase's magic-link email redirects back to. The Supabase client
@@ -16,6 +17,7 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const { user, loading } = useSupabaseUser();
   const [timedOut, setTimedOut] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) router.replace("/");
@@ -29,12 +31,12 @@ export default function AuthCallbackPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center px-6 text-center">
       {!timedOut || loading ? (
-        <p className="text-sm text-stone-500">Signing you in…</p>
+        <p className="text-sm text-stone-500">{t("signingYouIn")}</p>
       ) : (
         <div className="text-sm text-stone-600">
-          <p>That link looks expired or invalid.</p>
+          <p>{t("linkExpired")}</p>
           <Link href="/login" className="mt-3 inline-block font-semibold text-amber-700 underline">
-            Try signing in again
+            {t("trySigningInAgain")}
           </Link>
         </div>
       )}

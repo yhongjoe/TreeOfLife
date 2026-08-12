@@ -1,30 +1,46 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDayDateLong, generateMissionPrompt, getMission } from "@/lib/schedule";
+import { formatDayDateLong, generateMissionPrompt, getMission, getMissionTitle, getMissionSpeaker, CONFERENCE_LINKS } from "@/lib/schedule";
 import { submitTestimony, useTestimonies } from "@/lib/dataService";
 import { useSession } from "@/lib/useSession";
 import { setDisplayName } from "@/lib/session";
+import { useTranslation, translate } from "@/lib/i18n/translations";
+import type { Language } from "@/lib/language";
 
 interface TestimonyModalProps {
   day: number | null;
   onClose: () => void;
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, lang: Language): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return translate(lang, "justNow");
+  if (mins < 60) return translate(lang, "minutesAgo", { n: mins });
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return translate(lang, "hoursAgo", { n: hours });
+  return translate(lang, "daysAgo", { n: Math.round(hours / 24) });
+}
+
+/**
+ * Opens the official conference session page as a genuine separate popup
+ * window (not an in-page iframe embed — the Church site, like most large
+ * institutional sites, is likely to block being framed via
+ * X-Frame-Options/CSP, so an iframe would silently fail). This is a link to
+ * the confirmed real session index page, not a per-talk deep link — see the
+ * comment on CONFERENCE_LINKS in schedule.ts for why individual talk URLs
+ * aren't generated.
+ */
+function openConferenceLink(lang: Language) {
+  window.open(CONFERENCE_LINKS[lang], "conference-talk", "width=480,height=800,noopener,noreferrer");
 }
 
 export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
   const mission = day ? getMission(day) : undefined;
   const { testimonies, loading } = useTestimonies(day);
   const session = useSession();
+  const { t, lang } = useTranslation();
 
   const [name, setName] = useState(session.displayName);
   const [message, setMessage] = useState("");
@@ -60,7 +76,7 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
       setDisplayName(name.trim());
       setMessage("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : t("genericError"));
     } finally {
       setSubmitting(false);
     }
@@ -77,50 +93,53 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`Day ${mission.day} testimonies`}
+        aria-label={t("dayLabel", { day: mission.day })}
       >
         <div className="relative shrink-0 bg-gradient-to-br from-amber-200 via-orange-200 to-rose-200 px-6 pb-5 pt-6">
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("close")}
             className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-stone-600 transition hover:bg-white"
           >
             ✕
           </button>
           <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
-            Day {mission.day} of 33 · {formatDayDateLong(mission.date)}
+            {t("dayOfTotalDate", { day: mission.day, date: formatDayDateLong(mission.date, lang) })}
           </p>
-          <h2 className="mt-1 text-xl font-bold leading-snug text-stone-800">{mission.title}</h2>
-          <p className="text-sm text-stone-600">{mission.speaker}</p>
-          <p className="mt-2 text-sm italic text-stone-700/90">{generateMissionPrompt(mission)}</p>
+          <h2 className="mt-1 text-xl font-bold leading-snug text-stone-800">{getMissionTitle(mission, lang)}</h2>
+          <p className="text-sm text-stone-600">{getMissionSpeaker(mission, lang)}</p>
+          <p className="mt-2 text-sm italic text-stone-700/90">{generateMissionPrompt(mission, lang)}</p>
+          <button
+            type="button"
+            onClick={() => openConferenceLink(lang)}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-4 py-2 text-xs font-bold text-amber-800 shadow-sm transition hover:bg-white"
+          >
+            📖 {t("readFullTalk")}
+          </button>
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-6 py-4">
-          {loading && <p className="text-sm text-stone-400">Loading testimonies…</p>}
-          {!loading && testimonies.length === 0 && (
-            <p className="text-sm italic text-stone-400">No testimonies yet — be the first to share today.</p>
-          )}
-          {testimonies.map((t) => (
-            <div key={t.id} className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
+          {loading && <p className="text-sm text-stone-400">{t("loadingTestimonies")}</p>}
+          {!loading && testimonies.length === 0 && <p className="text-sm italic text-stone-400">{t("noTestimoniesYet")}</p>}
+          {testimonies.map((testimony) => (
+            <div key={testimony.id} className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold text-stone-800">{t.authorName}</span>
-                <span className="text-[0.7rem] text-stone-400">{timeAgo(t.createdAt)}</span>
+                <span className="text-sm font-semibold text-stone-800">{testimony.authorName}</span>
+                <span className="text-[0.7rem] text-stone-400">{timeAgo(testimony.createdAt, lang)}</span>
               </div>
-              <p className="mt-0.5 text-sm leading-relaxed text-stone-600">{t.message}</p>
+              <p className="mt-0.5 text-sm leading-relaxed text-stone-600">{testimony.message}</p>
             </div>
           ))}
         </div>
 
         <form onSubmit={handleSubmit} className="shrink-0 space-y-2 border-t border-amber-200/70 bg-white/60 px-6 py-4">
-          <p className="text-xs font-semibold text-stone-500">
-            {myTestimony ? "Update your testimony for today" : "Share your testimony for today"}
-          </p>
+          <p className="text-xs font-semibold text-stone-500">{myTestimony ? t("updateYourTestimony") : t("shareYourTestimony")}</p>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t("yourNamePlaceholder")}
             maxLength={60}
             required
             className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
@@ -128,7 +147,7 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={myTestimony?.message ?? "What did you learn or feel today?"}
+            placeholder={myTestimony?.message ?? t("whatDidYouLearn")}
             maxLength={320}
             rows={3}
             required
@@ -141,7 +160,7 @@ export default function TestimonyModal({ day, onClose }: TestimonyModalProps) {
               disabled={submitting}
               className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
             >
-              {submitting ? "Sharing…" : myTestimony ? "Update" : "Share"}
+              {submitting ? t("sharing") : myTestimony ? t("update") : t("share")}
             </button>
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}

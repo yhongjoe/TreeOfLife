@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/translations";
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -21,6 +23,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   if (!open) return null;
 
   return (
@@ -45,7 +48,7 @@ export default function ConfirmDialog({
             disabled={busy}
             className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition hover:bg-stone-100 disabled:opacity-50"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -55,7 +58,7 @@ export default function ConfirmDialog({
               danger ? "bg-rose-600 hover:bg-rose-700" : "bg-amber-500 hover:bg-amber-600"
             }`}
           >
-            {busy ? "Working…" : confirmLabel}
+            {busy ? t("working") : confirmLabel}
           </button>
         </div>
       </div>
