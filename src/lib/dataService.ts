@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { DayStats, Testimony } from "./types";
 import * as mock from "@/data/mockStore";
 import type { MemberRosterEntry } from "@/lib/roster";
@@ -192,11 +192,18 @@ export function useTestimonies(day: number | null): { testimonies: Testimony[]; 
  * uses this one-shot, subscription-free fetch instead.
  */
 export function useTestimonyPreview(day: number | null, limit = 2): Testimony[] {
-  const mockPreview = useSyncExternalStore(
+  // getTestimoniesForDay(day) is cached/stable per store version (see
+  // mockStore.ts), which is required for useSyncExternalStore's snapshot
+  // contract. Slicing must happen *outside* the snapshot getter — doing
+  // `.slice()` inside it would return a new array identity on every call,
+  // which useSyncExternalStore reads as "the store changed" on every render
+  // and triggers an infinite render loop (React error #185).
+  const mockAll = useSyncExternalStore(
     mock.subscribe,
-    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day).slice(0, limit)),
-    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day).slice(0, limit)),
+    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day)),
+    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day)),
   );
+  const mockPreview = useMemo(() => mockAll.slice(0, limit), [mockAll, limit]);
   const [livePreview, setLivePreview] = useState<Testimony[]>([]);
 
   useEffect(() => {
