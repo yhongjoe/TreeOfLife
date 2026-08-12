@@ -42,6 +42,25 @@ async function liveGetTestimonies(day: number): Promise<Testimony[]> {
   }));
 }
 
+async function liveGetTestimoniesPreview(day: number, limit: number): Promise<Testimony[]> {
+  const supabase = getSupabaseClient()!;
+  const { data, error } = await supabase
+    .from("testimonies")
+    .select("id, day, user_id, author_name, message, created_at")
+    .eq("day", day)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    day: row.day,
+    authorId: row.user_id,
+    authorName: row.author_name,
+    message: row.message,
+    createdAt: row.created_at,
+  }));
+}
+
 async function liveGetAllTestimonies(): Promise<Testimony[]> {
   const supabase = getSupabaseClient()!;
   const { data, error } = await supabase
@@ -154,6 +173,45 @@ export function useTestimonies(day: number | null): { testimonies: Testimony[]; 
 
   if (!isSupabaseConfigured) return { testimonies: mockTestimonies, loading: false };
   return { testimonies: day === null ? EMPTY_TESTIMONIES : liveTestimonies, loading };
+}
+
+/**
+ * Lightweight hover/preview variant of useTestimonies — fetches at most
+ * `limit` rows once per `day` change and never opens a Realtime channel.
+ *
+ * The full useTestimonies hook opens a live-subscribed WebSocket channel
+ * named `public:testimonies:day-${day}`. It's only meant to be used by the
+ * open TestimonyModal (one at a time). The tooltip preview used to call the
+ * same hook, which meant that on mobile — where a single tap fires both a
+ * synthetic `mouseenter` and a `click` for the same fruit almost
+ * simultaneously — two different components briefly subscribed to a
+ * channel with the *same* topic name for the *same* day at once. That
+ * collision could spiral into a churn of duplicate/retrying realtime
+ * connections and reliably crashed the tab on mobile browsers. The tooltip
+ * only ever renders 2 testimonies and doesn't need to be live, so it now
+ * uses this one-shot, subscription-free fetch instead.
+ */
+export function useTestimonyPreview(day: number | null, limit = 2): Testimony[] {
+  const mockPreview = useSyncExternalStore(
+    mock.subscribe,
+    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day).slice(0, limit)),
+    () => (day === null ? EMPTY_TESTIMONIES : mock.getTestimoniesForDay(day).slice(0, limit)),
+  );
+  const [livePreview, setLivePreview] = useState<Testimony[]>([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || day === null) return;
+    let cancelled = false;
+    liveGetTestimoniesPreview(day, limit)
+      .then((t) => !cancelled && setLivePreview(t))
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [day, limit]);
+
+  if (!isSupabaseConfigured) return mockPreview;
+  return day === null ? EMPTY_TESTIMONIES : livePreview;
 }
 
 export async function submitTestimony(day: number, authorId: string, authorName: string, message: string): Promise<void> {

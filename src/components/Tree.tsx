@@ -5,7 +5,7 @@ import FruitNode from "./FruitNode";
 import FruitTooltip from "./FruitTooltip";
 import { getFruitPositions } from "@/lib/fruitLayout";
 import { getMission, TOTAL_DAYS } from "@/lib/schedule";
-import { useTestimonies } from "@/lib/dataService";
+import { useTestimonyPreview } from "@/lib/dataService";
 import type { DayStats } from "@/lib/types";
 
 interface TreeProps {
@@ -83,7 +83,7 @@ export default function Tree({ dayStats, focusedDay, onOpenDay }: TreeProps) {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const positions = useMemo(() => getFruitPositions(TOTAL_DAYS), []);
   const statsByDay = useMemo(() => new Map(dayStats.map((s) => [s.day, s])), [dayStats]);
-  const { testimonies: hoveredTestimonies } = useTestimonies(hoveredDay);
+  const hoveredTestimonies = useTestimonyPreview(hoveredDay);
 
   const hoveredPos = hoveredDay ? positions.find((p) => p.day === hoveredDay) : undefined;
   const hoveredMission = hoveredDay ? getMission(hoveredDay) : undefined;
