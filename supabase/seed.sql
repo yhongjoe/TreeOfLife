@@ -35,9 +35,9 @@ insert into public.missions (day, mission_date, speaker, talk_title) values
   (28, '2026-09-14', 'Neil L. Andersen',           'Eternal Marriage is an Eternal Journey'),
   (29, '2026-09-15', 'Quentin L. Cook',            'Keys, Covenants and Easter'),
   (30, '2026-09-16', 'Gerrit W. Gong',             'Abide With Me; ''Tis Eastertide'),
-  (31, '2026-09-17', 'Ulisses Soares',             'Bright and Glorious Morning'),
-  (32, '2026-09-18', 'Jeffrey R. Holland',         'The Motion of a Hidden Fire'),
-  (33, '2026-09-19', 'Neil L. Andersen',           'The Triumph of Hope')
+  (31, '2026-09-17', 'Ulisses Soares',             'Jesus Christ—the True Vine'),
+  (32, '2026-09-18', 'Taniela B. Wakolo',          'Come unto Christ—Together'),
+  (33, '2026-09-19', 'Dallin H. Oaks',             'Closing Remarks')
 on conflict (day) do update set
   mission_date = excluded.mission_date,
   speaker = excluded.speaker,

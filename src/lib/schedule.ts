@@ -7,11 +7,15 @@ import type { Language } from "./language";
  * the date at render time (see `formatDayDate`) rather than hardcoded, so
  * they can never drift out of sync with the calendar.
  *
- * Korean speaker/title fields for days 1-30 are sourced from the official
- * Korean-language session page (churchofjesuschrist.org/study/general-conference/2026/04?lang=kor).
- * Days 31-33 could NOT be verified against that page — see the comment
- * above their entries — and still carry best-effort translations pending
- * clarification.
+ * Speaker/title fields (both English and Korean) are sourced from the
+ * official April 2026 General Conference session pages —
+ * churchofjesuschrist.org/study/general-conference/2026/04?lang=eng / ?lang=kor.
+ * Days 31-33 originally didn't match a real talk from this session (Soares'
+ * actual talk here has a different title than first assumed, Holland isn't
+ * a speaker in this session, and Andersen only has the one talk already
+ * used on Day 28) — they were swapped to this session's actual remaining
+ * talks: Soares' real talk, Taniela B. Wakolo (replacing Holland), and
+ * Dallin H. Oaks's closing remarks (replacing the second Andersen slot).
  */
 export const SCHEDULE: MissionDay[] = [
   { day: 1, date: "2026-08-18", speaker: "Dallin H. Oaks", title: "Introduction / Alive in Christ", speakerKo: "댈린 에이치 옥스", titleKo: "서두 말씀 / 그리스도 안에서 살아 있나니" },
@@ -44,14 +48,9 @@ export const SCHEDULE: MissionDay[] = [
   { day: 28, date: "2026-09-14", speaker: "Neil L. Andersen", title: "Eternal Marriage is an Eternal Journey", speakerKo: "닐 엘 앤더슨", titleKo: "영원한 결혼은 영원한 여정입니다" },
   { day: 29, date: "2026-09-15", speaker: "Quentin L. Cook", title: "Keys, Covenants and Easter", speakerKo: "퀜틴 엘 쿡", titleKo: "열쇠, 성약, 그리고 부활절" },
   { day: 30, date: "2026-09-16", speaker: "Gerrit W. Gong", title: "Abide With Me; 'Tis Eastertide", speakerKo: "게릿 더블유 공", titleKo: "이 부활 절기에 누구도 홀로 걷게 하지 마십시오" },
-  // NOT verified against the official 2026/04 Korean session page — see chat:
-  // this session's Soares talk is actually "참포도나무이신 예수 그리스도" (a
-  // different title than below), Holland doesn't appear in this session at
-  // all, and Andersen only has the one talk used on Day 28. Titles below are
-  // still best-effort translations pending clarification.
-  { day: 31, date: "2026-09-17", speaker: "Ulisses Soares", title: "Bright and Glorious Morning", speakerKo: "울리세스 소아레스", titleKo: "밝고 영광스러운 아침" },
-  { day: 32, date: "2026-09-18", speaker: "Jeffrey R. Holland", title: "The Motion of a Hidden Fire", speakerKo: "제프리 알 홀런드", titleKo: "숨겨진 불꽃의 움직임" },
-  { day: 33, date: "2026-09-19", speaker: "Neil L. Andersen", title: "The Triumph of Hope", speakerKo: "닐 엘 앤더슨", titleKo: "소망의 승리" },
+  { day: 31, date: "2026-09-17", speaker: "Ulisses Soares", title: "Jesus Christ—the True Vine", speakerKo: "울리세스 소아레스", titleKo: "참포도나무이신 예수 그리스도" },
+  { day: 32, date: "2026-09-18", speaker: "Taniela B. Wakolo", title: "Come unto Christ—Together", speakerKo: "타니엘라 비 와콜로", titleKo: "함께 그리스도께 나아오십시오" },
+  { day: 33, date: "2026-09-19", speaker: "Dallin H. Oaks", title: "Closing Remarks", speakerKo: "댈린 에이치 옥스", titleKo: "폐회 말씀" },
 ];
 
 export const TOTAL_DAYS = SCHEDULE.length;
