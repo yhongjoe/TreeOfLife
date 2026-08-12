@@ -42,7 +42,7 @@ export default function FruitNode({
       style={{ left: `${xPct}%`, top: `${yPct}%` }}
     >
       <span
-        className={`relative flex h-[6.2vw] w-[6.2vw] min-h-9 min-w-9 max-h-14 max-w-14 items-center justify-center transition-transform duration-300 ease-out group-hover:scale-115 group-active:scale-95 ${
+        className={`relative flex h-[6.2vw] w-[6.2vw] min-h-5 min-w-5 max-h-14 max-w-14 items-center justify-center transition-transform duration-300 ease-out sm:min-h-9 sm:min-w-9 group-hover:scale-115 group-active:scale-95 ${
           isFocused ? "animate-fruit-pulse scale-125" : ""
         }`}
         style={{
@@ -71,7 +71,7 @@ export default function FruitNode({
             {day}
           </text>
         </svg>
-        <span className="absolute -right-1.5 -top-1 min-w-[1.15rem] rounded-full border border-white/70 bg-amber-500 px-1 text-center text-[0.6rem] font-bold leading-[1.1rem] text-white shadow-sm">
+        <span className="absolute -right-1 -top-0.5 min-w-[0.9rem] rounded-full border border-white/70 bg-amber-500 px-0.5 text-center text-[0.5rem] font-bold leading-[0.85rem] text-white shadow-sm sm:-right-1.5 sm:-top-1 sm:min-w-[1.15rem] sm:px-1 sm:text-[0.6rem] sm:leading-[1.1rem]">
           {participantCount}
         </span>
       </span>
