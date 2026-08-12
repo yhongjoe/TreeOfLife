@@ -11,6 +11,29 @@ export const TOTAL_MEMBERS = mock.TOTAL_MEMBERS;
 
 const EMPTY_TESTIMONIES: Testimony[] = [];
 
+/**
+ * Fired locally right after this client successfully writes to `testimonies`
+ * (submit or admin reset). Every live hook below refetches on this signal in
+ * addition to its Realtime postgres_changes subscription.
+ *
+ * This exists because relying on Realtime alone left a real gap: a
+ * WebSocket channel opened before/around sign-in can end up authorized with
+ * a stale (or anonymous) JWT, so the change event for a user's *own* write
+ * doesn't always reach their *own* already-open tab — confirmed by testing,
+ * where a submitted testimony saved correctly but the participant count
+ * only updated after a full page reload. This local signal guarantees the
+ * actor who just made a change sees it immediately, independent of whatever
+ * Realtime does or doesn't deliver.
+ */
+const liveChangeListeners = new Set<() => void>();
+function notifyLiveChange() {
+  liveChangeListeners.forEach((cb) => cb());
+}
+function subscribeLiveChange(cb: () => void): () => void {
+  liveChangeListeners.add(cb);
+  return () => liveChangeListeners.delete(cb);
+}
+
 // ---------------------------------------------------------------------------
 // Live (Supabase) query functions. These are fully implemented against the
 // schema in supabase/schema.sql and only ever run once NEXT_PUBLIC_SUPABASE_URL
@@ -86,18 +109,21 @@ async function liveSubmitTestimony(day: number, authorName: string, message: str
     .from("testimonies")
     .upsert({ day, user_id: auth.user.id, author_name: authorName, message }, { onConflict: "day,user_id" });
   if (error) throw error;
+  notifyLiveChange();
 }
 
 async function liveResetDay(day: number): Promise<void> {
   const supabase = getSupabaseClient()!;
   const { error } = await supabase.from("testimonies").delete().eq("day", day);
   if (error) throw error;
+  notifyLiveChange();
 }
 
 async function liveResetAll(): Promise<void> {
   const supabase = getSupabaseClient()!;
   const { error } = await supabase.from("testimonies").delete().neq("day", -1);
   if (error) throw error;
+  notifyLiveChange();
 }
 
 // ---------------------------------------------------------------------------
@@ -131,9 +157,11 @@ export function useDayStats(): DayStats[] {
       .channel("public:testimonies:stats")
       .on("postgres_changes", { event: "*", schema: "public", table: "testimonies" }, load)
       .subscribe();
+    const unsubscribeLocal = subscribeLiveChange(load);
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      unsubscribeLocal();
     };
   }, []);
 
@@ -165,9 +193,11 @@ export function useTestimonies(day: number | null): { testimonies: Testimony[]; 
       .channel(`public:testimonies:day-${day}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "testimonies", filter: `day=eq.${day}` }, load)
       .subscribe();
+    const unsubscribeLocal = subscribeLiveChange(load);
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      unsubscribeLocal();
     };
   }, [day]);
 
@@ -209,11 +239,16 @@ export function useTestimonyPreview(day: number | null, limit = 2): Testimony[] 
   useEffect(() => {
     if (!isSupabaseConfigured || day === null) return;
     let cancelled = false;
-    liveGetTestimoniesPreview(day, limit)
-      .then((t) => !cancelled && setLivePreview(t))
-      .catch(console.error);
+    const load = () => {
+      liveGetTestimoniesPreview(day, limit)
+        .then((t) => !cancelled && setLivePreview(t))
+        .catch(console.error);
+    };
+    load();
+    const unsubscribeLocal = subscribeLiveChange(load);
     return () => {
       cancelled = true;
+      unsubscribeLocal();
     };
   }, [day, limit]);
 
@@ -247,9 +282,11 @@ export function useMemberRoster(): MemberRosterEntry[] {
       .channel("public:testimonies:roster")
       .on("postgres_changes", { event: "*", schema: "public", table: "testimonies" }, load)
       .subscribe();
+    const unsubscribeLocal = subscribeLiveChange(load);
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      unsubscribeLocal();
     };
   }, []);
 
@@ -275,9 +312,11 @@ export function useAllTestimonies(): Testimony[] {
       .channel("public:testimonies:admin-all")
       .on("postgres_changes", { event: "*", schema: "public", table: "testimonies" }, load)
       .subscribe();
+    const unsubscribeLocal = subscribeLiveChange(load);
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      unsubscribeLocal();
     };
   }, []);
 
