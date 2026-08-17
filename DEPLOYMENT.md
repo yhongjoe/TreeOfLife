@@ -27,24 +27,28 @@ This guide is for turning on the real multi-user backend.
    update public.stake_settings set total_members = 180, stake_name = 'Example Stake';
    ```
 
-## 3. Turn on email auth (magic link)
+## 3. Turn on email auth
 
-1. **Authentication → Providers**: confirm **Email** is enabled.
+1. **Authentication → Providers**: confirm **Email** is enabled — this
+   covers both the password sign-in/sign-up flow and password-reset emails,
+   no separate toggle needed.
 2. **Authentication → Sign In / Providers → Email**: turn **off** "Confirm
-   email" only if you want frictionless first-time sign-in for a closed
-   group; otherwise leave it on and members will click a link in their inbox.
+   email" only if you want frictionless account creation for a closed group
+   (new accounts get an active session immediately); otherwise leave it on
+   and new members confirm via a one-time link in their inbox before their
+   first sign-in works.
 3. **Authentication → URL Configuration**: set **Site URL** to your future
-   Vercel URL (e.g. `https://tree-of-light.vercel.app`) — you can update this
-   later once you know the real URL.
+   Vercel URL (e.g. `https://tree-of-light.vercel.app`), and add
+   `<your-url>/auth/callback` and `<your-url>/auth/reset-password` as
+   **Redirect URLs** — you can update these later once you know the real URL.
 
-> The prototype's UI itself doesn't yet include the actual sign-in screen
-> (magic-link email + callback route) — the frontend code in
-> `src/lib/dataService.ts` is fully wired to call `supabase.auth.getUser()`
-> on submit, but you'll want to add a simple `/login` page that calls
-> `supabase.auth.signInWithOtp({ email })`. This is a small, standard addition
-> — see [Supabase's Next.js auth guide](https://supabase.com/docs/guides/auth/quickstarts/nextjs)
-> for the exact snippet if you want members to actually authenticate rather
-> than running purely in demo mode.
+The app (`/login`) uses **password-based sign-in** as the primary flow —
+members create an account once (email + password) and sign in directly with
+those credentials afterward, no email required per visit. A "Forgot your
+password? / First time here?" link on the sign-in form sends a one-time
+password-set link (`/auth/reset-password`) — this is also how to add a
+password to an account that only ever existed in Supabase's `auth.users`
+table without one (e.g., if you manually created a user via the dashboard).
 
 ## 4. Get your API keys
 

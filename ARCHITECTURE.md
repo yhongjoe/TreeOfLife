@@ -75,8 +75,13 @@ Key design choices:
 
 ## 3. Auth & roles
 
-- **Production**: Supabase Auth (email magic link is the simplest free option).
-  A `handle_new_user()` trigger creates a `profiles` row on first sign-in,
+- **Production**: Supabase Auth, password-based (`/login`) — members create
+  an account once and sign in with email + password afterward, no email
+  required per visit. A "forgot/first time" link sends a one-time
+  password-set link (`/auth/reset-password`), used both for real password
+  recovery and for the one-time step of adding a password to an account that
+  didn't have one yet. A `handle_new_user()` trigger creates a `profiles`
+  row on first sign-in,
   defaulting to `role = 'member'`. You promote the first admin manually with
   one SQL statement (see the bottom of `schema.sql` and DEPLOYMENT.md) — there
   is intentionally no self-serve "become admin" button anywhere.
