@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [showSetPasswordAction, setShowSetPasswordAction] = useState(false);
   const { t } = useTranslation();
 
   function switchMode(next: Mode) {
@@ -27,6 +28,7 @@ export default function LoginPage() {
     setStatus("idle");
     setError(null);
     setInfoMessage(null);
+    setShowSetPasswordAction(false);
     setPassword("");
     setConfirmPassword("");
   }
@@ -60,9 +62,15 @@ export default function LoginPage() {
     }
     setStatus("sending");
     setError(null);
-    const { error: signUpError, needsEmailConfirmation } = await signUpWithPassword(email.trim(), password);
+    const { error: signUpError, needsEmailConfirmation, alreadyRegistered } = await signUpWithPassword(email.trim(), password);
     if (signUpError) {
       setError(signUpError);
+      setStatus("error");
+      return;
+    }
+    if (alreadyRegistered) {
+      setError(t("emailAlreadyRegistered"));
+      setShowSetPasswordAction(true);
       setStatus("error");
       return;
     }
@@ -214,6 +222,15 @@ export default function LoginPage() {
                       : t("createAccountButton")}
                 </button>
                 {status === "error" && error && <p className="text-xs text-rose-500">{error}</p>}
+                {showSetPasswordAction && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="w-full rounded-full border border-amber-400 px-5 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50"
+                  >
+                    {t("sendResetLink")}
+                  </button>
+                )}
               </form>
 
               {mode === "signin" && (

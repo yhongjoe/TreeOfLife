@@ -21,20 +21,33 @@ export async function signInWithPassword(email: string, password: string): Promi
  * setting still applies — see DEPLOYMENT.md — so this may require the user
  * to click a one-time confirmation link before their first sign-in works;
  * `needsEmailConfirmation` tells the UI which message to show.
+ *
+ * `alreadyRegistered`: Supabase deliberately returns a success-shaped
+ * response (with an empty `identities` array, no error) when signUp is
+ * called for an email that already has a confirmed account — it does NOT
+ * set/change the password and sends no email, to prevent account
+ * enumeration. Without checking this, the UI would show a false "check your
+ * email" success message while nothing actually happened, which is exactly
+ * what caused a real user's "invalid password" confusion — they used
+ * Create Account on an email that already existed (created earlier via
+ * magic link), got a fake success, and the password was never set.
  */
 export async function signUpWithPassword(
   email: string,
   password: string,
-): Promise<{ error: string | null; needsEmailConfirmation: boolean }> {
-  if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_ERROR, needsEmailConfirmation: false };
+): Promise<{ error: string | null; needsEmailConfirmation: boolean; alreadyRegistered: boolean }> {
+  if (!isSupabaseConfigured) {
+    return { error: NOT_CONFIGURED_ERROR, needsEmailConfirmation: false, alreadyRegistered: false };
+  }
   const supabase = getSupabaseClient()!;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
   });
-  if (error) return { error: error.message, needsEmailConfirmation: false };
-  return { error: null, needsEmailConfirmation: !data.session };
+  if (error) return { error: error.message, needsEmailConfirmation: false, alreadyRegistered: false };
+  const alreadyRegistered = (data.user?.identities?.length ?? 0) === 0;
+  return { error: null, needsEmailConfirmation: !data.session && !alreadyRegistered, alreadyRegistered };
 }
 
 /**
