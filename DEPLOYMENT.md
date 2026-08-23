@@ -50,7 +50,31 @@ password-set link (`/auth/reset-password`) — this is also how to add a
 password to an account that only ever existed in Supabase's `auth.users`
 table without one (e.g., if you manually created a user via the dashboard).
 
-## 4. Get your API keys
+## 4. Set up custom SMTP (strongly recommended)
+
+Supabase's built-in email sender (the default when no SMTP is configured) is
+meant for testing only — it's rate-limited to a handful of emails per hour
+project-wide, and its shared sending domain is often flagged as spam by
+consumer providers (Naver, Daum, Gmail). In practice this means **some new
+members silently never receive their confirmation email**, especially if
+several people sign up within the same hour (e.g. right after the app is
+announced at a conference) — `signUp()` still returns success on the client
+even when Supabase's mailer drops the email, so there's nothing to catch.
+
+Connect a real SMTP provider before your event:
+
+1. Create a free account with an SMTP provider (e.g.
+   [Resend](https://resend.com), [Postmark](https://postmarkapp.com), or
+   [SendGrid](https://sendgrid.com)) and verify a sending domain.
+2. In the Supabase dashboard: **Authentication → Settings → SMTP Settings**,
+   enable **Custom SMTP**, and fill in the host, port, username, and password
+   from your provider, plus a sender email on the domain you verified.
+3. Send yourself a test signup afterward to confirm the email lands outside
+   spam.
+4. Optional: once custom SMTP is connected, **Authentication → Rate
+   Limits** lets you safely raise the default emails-per-hour cap.
+
+## 5. Get your API keys
 
 **Project Settings → API**. You need:
 - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
@@ -64,7 +88,7 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-## 5. Push to GitHub
+## 6. Push to GitHub
 
 ```bash
 git add -A
@@ -74,7 +98,7 @@ git remote add origin https://github.com/<you>/tree-of-light.git
 git push -u origin main
 ```
 
-## 6. Deploy on Vercel
+## 7. Deploy on Vercel
 
 1. [vercel.com/new](https://vercel.com/new) → import the GitHub repo.
 2. Framework preset: **Next.js** (auto-detected).
@@ -87,7 +111,7 @@ git push -u origin main
    **Site URL** (and add a **Redirect URL**) to your real
    `https://<project>.vercel.app` address.
 
-## 7. Promote your first admin
+## 8. Promote your first admin
 
 After you've signed in at least once on the deployed site (creating your
 `profiles` row via the `handle_new_user` trigger), run in the SQL Editor:
@@ -99,7 +123,7 @@ where id = (select id from auth.users where email = 'you@example.com');
 
 You'll now see the **Admin Panel** link in the header and can access `/admin`.
 
-## 8. Verify realtime works
+## 9. Verify realtime works
 
 Open the site in two browser windows (or one normal + one incognito), submit
 a testimony in one, and confirm the fruit brightness / participant badge and
@@ -108,7 +132,7 @@ a manual refresh. If not, double-check **Database → Replication** in Supabase
 shows `testimonies` enabled (schema.sql's `alter publication` line does this
 automatically, but it's worth a glance).
 
-## 9. Updating the mission schedule later
+## 10. Updating the mission schedule later
 
 The schedule is defined in two places that must stay in sync:
 - `src/lib/schedule.ts` (drives all UI)
